@@ -7,9 +7,12 @@ export default {
       map: '',
       service: '',
       infoWindow: '',
-      myLatLng: { lat: 52.524697, lng: 13.442576 },
+      lat: 52.524697,
+      lng: 13.442576,
+      dataReady: false
     }
   },
+  async mounted() {},
   methods: {
     async getData() {
       const loader = new Loader({
@@ -20,7 +23,7 @@ export default {
 
       try {
         const google = await loader.load()
-        let coco = new google.maps.LatLng(this.myLatLng.lat, this.myLatLng.lng)
+        let coco = new google.maps.LatLng(this.lat, this.lng)
         this.map = new google.maps.Map(document.getElementById('map'), {
           center: coco,
           zoom: 15,
@@ -28,7 +31,7 @@ export default {
         })
         this.infoWindow = new google.maps.InfoWindow({
           content: 'Click the map to get Lat/Lng!',
-          position: this.myLatlng
+          position: new google.maps.LatLng(this.lat, this.lng)
         })
         let request = {
           location: coco,
@@ -41,6 +44,7 @@ export default {
         }
 
         this.service = new google.maps.places.PlacesService(this.map)
+
         const callback = (results, status) => {
           for (let i = 0; i < results.length; i++) {
             place_request.placeId = results[i].place_id
@@ -49,30 +53,29 @@ export default {
 
           if (status == google.maps.places.PlacesServiceStatus.OK) {
             for (var i = 0; i < results.length; i++) {
-              createMarker(results[i])
+              console.log(results)
             }
+            createMarker(results[0])
             this.map.setCenter(results[0].geometry.location)
           }
         }
-        this.service.nearbySearch(request, callback)
 
         const callbackPlace = (result, status) => {
           this.listItems.push(result)
         }
-      } catch (error) {
-        console.error(error)
-      }
-      const createMarker = (place) => {
-        if (!place.geometry || !place.geometry.location) return
 
-        this.map.addListener('click', (mapsMouseEvent) => {
+        this.service.nearbySearch(request, callback)
+
+        const createMarker = (place) => {
+          if (!place.geometry || !place.geometry.location) return
+
+          this.map.addListener('click', (mapsMouseEvent) => {
             // Close the current InfoWindow.
-            
-            const {lat, lng} = mapsMouseEvent.latLng.toJSON();
-            console.log(lat, lng);
-            this.myLatLng.lat = lat;
-            this.myLatLng.lng = lng;
-            console.log(this.myLatLng)
+
+            const { lat, lng } = mapsMouseEvent.latLng.toJSON()
+            this.lat = lat
+            this.lng = lng
+            console.log(lat)
             this.infoWindow.close()
             // Create a new InfoWindow.
             this.infoWindow = new google.maps.InfoWindow({
@@ -81,10 +84,12 @@ export default {
             this.infoWindow.setContent(JSON.stringify(mapsMouseEvent.latLng.toJSON(), null, 2))
             this.infoWindow.open(this.map)
           })
+        }
+
+        this.dataReady = true
+      } catch (error) {
+        console.error(error)
       }
-    },
-    mounted() {
-      
     }
   }
 }
