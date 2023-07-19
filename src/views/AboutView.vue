@@ -7,89 +7,86 @@ export default {
       map: '',
       service: '',
       infoWindow: '',
+      dataReady: false,
+      defaultLocation: {},
       lat: 52.524697,
-      lng: 13.442576,
-      dataReady: false
+      lng: 13.442576
     }
   },
-  async mounted() {},
-  methods: {
-    async getData() {
+  async mounted() {
+    try {
       const loader = new Loader({
         apiKey: 'AIzaSyCRiINOpnvk-p9m7AJIhxPTbuAQif7L4n4',
         version: '',
         libraries: ['places', 'marker']
       })
+      const google = await loader.load()
+      this.defaultLocation = new google.maps.LatLng(this.lat, this.lng)
+      this.map = new google.maps.Map(document.getElementById('map'), {
+        center: this.defaultLocation,
+        zoom: 15,
+        mapTypeId: google.maps.MapTypeId.ROADMAP
+      })
+      this.infoWindow = new google.maps.InfoWindow({
+        content: 'Click the map to get Lat/Lng!',
+        position: new google.maps.LatLng(this.lat, this.lng)
+      })
+      // const marker = new google.maps.Marker({
+      //   map,
+      //   position: place.geometry.location
+      // })
+      this.map.addListener('click', (mapsMouseEvent) => {
+        // Close the current InfoWindow.
 
-      try {
-        const google = await loader.load()
-        let coco = new google.maps.LatLng(this.lat, this.lng)
-        this.map = new google.maps.Map(document.getElementById('map'), {
-          center: coco,
-          zoom: 15,
-          mapTypeId: google.maps.MapTypeId.ROADMAP
-        })
+        const { lat, lng } = mapsMouseEvent.latLng.toJSON()
+        this.lat = lat
+        this.lng = lng
+        this.infoWindow.close()
+        // Create a new InfoWindow.
         this.infoWindow = new google.maps.InfoWindow({
-          content: 'Click the map to get Lat/Lng!',
-          position: new google.maps.LatLng(this.lat, this.lng)
+          position: mapsMouseEvent.latLng
         })
-        let request = {
-          location: coco,
-          radius: '1500',
-          type: ['']
-        }
-        let place_request = {
-          placeId: '',
-          fields: ['business_status', 'name', 'type', 'website', 'formatted_phone_number']
-        }
-
-        this.service = new google.maps.places.PlacesService(this.map)
-
-        const callback = (results, status) => {
-          for (let i = 0; i < results.length; i++) {
-            place_request.placeId = results[i].place_id
-            this.service.getDetails(place_request, callbackPlace)
-          }
-
-          if (status == google.maps.places.PlacesServiceStatus.OK) {
-            for (var i = 0; i < results.length; i++) {
-              console.log(results)
-            }
-            createMarker(results[0])
-            this.map.setCenter(results[0].geometry.location)
-          }
-        }
-
+        this.infoWindow.setContent(JSON.stringify(mapsMouseEvent.latLng.toJSON(), null, 2))
+        this.infoWindow.open(this.map)
+        this.findBusiness()
+      })
+    } catch (error) {
+      console.error(error)
+    }
+  },
+  methods: {
+    createMarker(place) {
+      if (!place.geometry || !place.geometry.location) return
+    },
+    findBusiness() {
+      let request = {
+        location: { lat: this.lat, lng: this.lng },
+        radius: '1500',
+        type: ['']
+      }
+      let place_request = {
+        placeId: '',
+        fields: ['business_status', 'name', 'type', 'website', 'formatted_phone_number']
+      }
+      this.service = new google.maps.places.PlacesService(this.map)
+      const callback = (results, status) => {
         const callbackPlace = (result, status) => {
           this.listItems.push(result)
         }
-
-        this.service.nearbySearch(request, callback)
-
-        const createMarker = (place) => {
-          if (!place.geometry || !place.geometry.location) return
-
-          this.map.addListener('click', (mapsMouseEvent) => {
-            // Close the current InfoWindow.
-
-            const { lat, lng } = mapsMouseEvent.latLng.toJSON()
-            this.lat = lat
-            this.lng = lng
-            console.log(lat)
-            this.infoWindow.close()
-            // Create a new InfoWindow.
-            this.infoWindow = new google.maps.InfoWindow({
-              position: mapsMouseEvent.latLng
-            })
-            this.infoWindow.setContent(JSON.stringify(mapsMouseEvent.latLng.toJSON(), null, 2))
-            this.infoWindow.open(this.map)
-          })
+        for (let i = 0; i < results.length; i++) {
+          place_request.placeId = results[i].place_id
+          this.service.getDetails(place_request, callbackPlace)
         }
 
-        this.dataReady = true
-      } catch (error) {
-        console.error(error)
+        if (status == google.maps.places.PlacesServiceStatus.OK) {
+          for (var i = 0; i < results.length; i++) {
+            this.createMarker(results[i])
+            this.map.setCenter(results[i].geometry.location)
+            console.log(results)
+          }
+        }
       }
+      this.service.nearbySearch(request, callback)
     }
   }
 }
@@ -98,7 +95,6 @@ export default {
   <div class="about">
     <header>
       <h1>Business at Google Maps</h1>
-      <button class="business-btn" @click="getData">Get Data</button>
     </header>
     <div id="map"></div>
     <div class="business-list-container">
@@ -115,8 +111,10 @@ export default {
           >.
         </li>
         <li>
-          <span style="font-weight: bold">Telefono: </span
-          ><a href="tel:{{ item.formatted_phone_number }}">{{ item.formatted_phone_number }}</a>
+          <p style="font-weight: bold">
+            Telefono:
+            <a href="tel:{{ item.formatted_phone_number }}">{{ item.formatted_phone_number }}</a>
+          </p>
         </li>
       </ul>
     </div>
@@ -126,7 +124,7 @@ export default {
 <style>
 #map {
   height: 500px;
-  max-width: 500px;
+  width: 100%;
   margin: auto;
 }
 .about {
