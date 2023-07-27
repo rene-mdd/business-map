@@ -1,5 +1,6 @@
 <script>
 import { Loader } from '@googlemaps/js-api-loader'
+// const { Marker } = await google.maps.importLibrary('marker')
 export default {
   data() {
     return {
@@ -31,10 +32,7 @@ export default {
         content: 'Click the map to get Lat/Lng!',
         position: new google.maps.LatLng(this.lat, this.lng)
       })
-      // const marker = new google.maps.Marker({
-      //   map,
-      //   position: place.geometry.location
-      // })
+
       this.map.addListener('click', (mapsMouseEvent) => {
         // Close the current InfoWindow.
 
@@ -56,6 +54,7 @@ export default {
   },
   methods: {
     createMarker(place) {
+      console.log(place)
       if (!place.geometry || !place.geometry.location) return
     },
     findBusiness() {
@@ -81,8 +80,11 @@ export default {
         if (status == google.maps.places.PlacesServiceStatus.OK) {
           for (var i = 0; i < results.length; i++) {
             this.createMarker(results[i])
+            new google.maps.Marker({
+              map: this.map,
+              position: results[i].geometry.location
+            })
             this.map.setCenter(results[i].geometry.location)
-            console.log(results)
           }
         }
       }
