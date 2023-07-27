@@ -54,7 +54,6 @@ export default {
   },
   methods: {
     createMarker(place) {
-      console.log(place)
       if (!place.geometry || !place.geometry.location) return
     },
     findBusiness() {
@@ -70,13 +69,16 @@ export default {
       this.service = new google.maps.places.PlacesService(this.map)
       const callback = (results, status) => {
         const callbackPlace = (result, status) => {
+          // console.log(result)
           this.listItems.push(result)
+          if (result.website) {
+            this.fetchAsync(result.website)
+          }
         }
-        for (let i = 0; i < results.length; i++) {
+        for (let i = 0; i < 2; i++) {
           place_request.placeId = results[i].place_id
           this.service.getDetails(place_request, callbackPlace)
         }
-
         if (status == google.maps.places.PlacesServiceStatus.OK) {
           for (var i = 0; i < results.length; i++) {
             this.createMarker(results[i])
@@ -89,6 +91,32 @@ export default {
         }
       }
       this.service.nearbySearch(request, callback)
+    },
+    async fetchAsync(webUrl) {
+      console.log(webUrl)
+      const bodyObject = {
+        url: webUrl,
+        requestScreenshot: true
+      }
+      let response = await fetch(
+        'https://searchconsole.googleapis.com/v1/urlTestingTools/mobileFriendlyTest:run?key=AIzaSyBMqGteA4DXEDJuWBWUa0YZtxx3xn0k_hk',
+        {
+          method: 'POST', // *GET, POST, PUT, DELETE, etc.
+          mode: 'no-cors', // no-cors, *cors, same-origin
+          cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+          credentials: 'same-origin', // include, *same-origin, omit
+          headers: {
+            'Content-Type': 'application/json'
+            // 'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          redirect: 'follow', // manual, *follow, error
+          referrerPolicy: 'no-referrer',
+          body: JSON.stringify(bodyObject)
+        }
+      )
+      // let data = await response.json()
+      console.log(response)
+      // return data
     }
   }
 }
