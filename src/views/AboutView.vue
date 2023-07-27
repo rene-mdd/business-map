@@ -16,7 +16,7 @@ export default {
   async mounted() {
     try {
       const loader = new Loader({
-        apiKey: 'AIzaSyCRiINOpnvk-p9m7AJIhxPTbuAQif7L4n4',
+        apiKey: `${import.meta.env.VITE_MAP_API_KEY}`,
         version: '',
         libraries: ['places', 'marker']
       })
