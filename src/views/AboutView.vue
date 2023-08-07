@@ -1,17 +1,21 @@
 <script>
 import { Loader } from '@googlemaps/js-api-loader'
-// const { Marker } = await google.maps.importLibrary('marker')
 export default {
   data() {
     return {
       listItems: [],
+      websiteStatusResult: [],
+      websiteAsyncStatus: [],
+      promiseResult: [],
       map: '',
       service: '',
       infoWindow: '',
       dataReady: false,
       defaultLocation: {},
-      lat: 52.524697,
-      lng: 13.442576
+      lat: 41.408165706775655,
+      lng: 2.155339378508503,
+      mobileFriendly: 'responsive',
+      notMobileFriendly: 'not-responsive'
     }
   },
   async mounted() {
@@ -35,11 +39,10 @@ export default {
 
       this.map.addListener('click', (mapsMouseEvent) => {
         // Close the current InfoWindow.
-
+        this.dataReady = true
         const { lat, lng } = mapsMouseEvent.latLng.toJSON()
         this.lat = lat
         this.lng = lng
-        this.infoWindow.close()
         // Create a new InfoWindow.
         this.infoWindow = new google.maps.InfoWindow({
           position: mapsMouseEvent.latLng
@@ -47,6 +50,7 @@ export default {
         this.infoWindow.setContent(JSON.stringify(mapsMouseEvent.latLng.toJSON(), null, 2))
         this.infoWindow.open(this.map)
         this.findBusiness()
+        this.infoWindow.close()
       })
     } catch (error) {
       console.error(error)
@@ -59,7 +63,7 @@ export default {
     findBusiness() {
       let request = {
         location: { lat: this.lat, lng: this.lng },
-        radius: '1500',
+        radius: '1000',
         type: ['']
       }
       let place_request = {
@@ -68,14 +72,15 @@ export default {
       }
       this.service = new google.maps.places.PlacesService(this.map)
       const callback = (results, status) => {
+        let totalAmount = 0
         const callbackPlace = (result, status) => {
-          // console.log(result)
           this.listItems.push(result)
-          if (result.website) {
-            this.fetchAsync(result.website)
+          totalAmount += 1
+          if (totalAmount === results.length) {
+            this.fetchAsync()
           }
         }
-        for (let i = 0; i < 2; i++) {
+        for (let i = 0; i < results.length; i++) {
           place_request.placeId = results[i].place_id
           this.service.getDetails(place_request, callbackPlace)
         }
@@ -92,31 +97,43 @@ export default {
       }
       this.service.nearbySearch(request, callback)
     },
-    async fetchAsync(webUrl) {
-      console.log(webUrl)
-      const bodyObject = {
-        url: webUrl,
-        requestScreenshot: true
-      }
-      let response = await fetch(
-        'https://searchconsole.googleapis.com/v1/urlTestingTools/mobileFriendlyTest:run?key=AIzaSyBMqGteA4DXEDJuWBWUa0YZtxx3xn0k_hk',
-        {
-          method: 'POST', // *GET, POST, PUT, DELETE, etc.
-          mode: 'no-cors', // no-cors, *cors, same-origin
-          cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
-          credentials: 'same-origin', // include, *same-origin, omit
-          headers: {
-            'Content-Type': 'application/json'
-            // 'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          redirect: 'follow', // manual, *follow, error
-          referrerPolicy: 'no-referrer',
-          body: JSON.stringify(bodyObject)
+    async fetchAsync() {
+      this.websiteAsyncStatus = this.listItems.map(async (item) => {
+        const text = item.website ? item.website : 'https//www. .net'
+        const replacedText = text.replace(/http(?=:\/\/)/g, 'https')
+        const bodyObject = {
+          url: replacedText,
+          requestScreenshot: true
         }
-      )
-      // let data = await response.json()
-      console.log(response)
-      // return data
+        let response = await fetch(
+          `https://searchconsole.googleapis.com/v1/urlTestingTools/mobileFriendlyTest:run?key=${
+            import.meta.env.VITE_MAP_API_KEY
+          }`,
+          {
+            method: 'POST', // *GET, POST, PUT, DELETE, etc.
+            headers: {
+              'Content-Type': 'application/json'
+              // 'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: JSON.stringify(bodyObject)
+          }
+        )
+        const websiteData = await response.json()
+        return websiteData
+
+        // return data
+      })
+      // if (this.listItems.length === this.websiteStatus.length) {
+      const resolvedPromises = await Promise.all(this.websiteAsyncStatus)
+      if (resolvedPromises) {
+        this.dataReady = false
+        this.websiteStatusResult = resolvedPromises
+        this.websiteStatusResult.forEach((siteStatus, index) => {
+          Object.assign(this.listItems[index], siteStatus)
+        })
+      }
+
+      // }
     }
   }
 }
@@ -127,13 +144,23 @@ export default {
       <h1>Business at Google Maps</h1>
     </header>
     <div id="map"></div>
+    <div class="loading-wrapper" v-if="dataReady">
+      <button class="buttonload"><i class="fa fa-spinner fa-spin"></i></button>
+    </div>
     <div class="business-list-container">
       <ul class="business" v-for="item in listItems">
         <li><span style="font-weight: bold">Nombre: </span>{{ item.name }}</li>
         <li><span style="font-weight: bold">Estatus: </span>{{ item.business_status }}</li>
         <li>
           <span style="font-weight: bold">Sitio web: </span
-          ><a class="website-link" href="{{ item.website }}" target="blank_">{{ item.website }}</a>
+          ><a
+            class="website-link"
+            :class="[item.mobileFriendliness === 'MOBILE_FRIENDLY' ? 'responsive' : '']"
+            href="{{ item.website }}"
+            style="{{ color:  }}"
+            target="blank_"
+            >{{ item.website }}</a
+          >
         </li>
         <li>
           <span style="font-weight: bold">Tipo: </span
@@ -193,5 +220,28 @@ export default {
 }
 .website-link {
   cursor: pointer;
+}
+
+.responsive {
+  color: rgb(236, 91, 83);
+}
+
+.loading-wrapper {
+  text-align: center;
+}
+
+.buttonload {
+  background-color: #04aa6d;
+  border: none; 
+  color: white; 
+  padding: 24px; 
+  font-size: 28px;
+  border-radius: 35px;
+  margin-top: 10px;
+}
+
+.fa {
+  margin-left: 8px;
+  margin-right: 8px;
 }
 </style>
