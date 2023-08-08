@@ -156,8 +156,7 @@ export default {
           ><a
             class="website-link"
             :class="[item.mobileFriendliness === 'MOBILE_FRIENDLY' ? 'responsive' : '']"
-            href="{{ item.website }}"
-            style="{{ color:  }}"
+            href="'//' + {{ item.website }}"
             target="blank_"
             >{{ item.website }}</a
           >
@@ -236,7 +235,7 @@ export default {
   color: white; 
   padding: 24px; 
   font-size: 28px;
-  border-radius: 35px;
+  border-radius: 50%;
   margin-top: 10px;
 }
 
