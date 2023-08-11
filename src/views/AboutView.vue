@@ -156,7 +156,7 @@ export default {
           ><a
             class="website-link"
             :class="[item.mobileFriendliness === 'MOBILE_FRIENDLY' ? 'responsive' : '']"
-            href="'//' + {{ item.website }}"
+            :href="item.website"
             target="blank_"
             >{{ item.website }}</a
           >
