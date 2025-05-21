@@ -15,15 +15,16 @@ export default {
       lat: 41.408165706775655,
       lng: 2.155339378508503,
       mobileFriendly: 'responsive',
-      notMobileFriendly: 'not-responsive'
+      notMobileFriendly: 'not-responsive',
+      selectedType: 'hotel',
     }
   },
   async mounted() {
     try {
       const loader = new Loader({
         apiKey: `${import.meta.env.VITE_MAP_API_KEY}`,
-        version: '',
-        libraries: ['places', 'marker']
+        version: 'weekly',
+        libraries: ['places']
       })
       const google = await loader.load()
       this.defaultLocation = new google.maps.LatLng(this.lat, this.lng)
@@ -64,7 +65,7 @@ export default {
       let request = {
         location: { lat: this.lat, lng: this.lng },
         radius: '1000',
-        type: ['']
+        type: this.selectedType || undefined // don't pass type if empty
       }
       let place_request = {
         placeId: '',
@@ -106,8 +107,7 @@ export default {
           requestScreenshot: true
         }
         let response = await fetch(
-          `https://searchconsole.googleapis.com/v1/urlTestingTools/mobileFriendlyTest:run?key=${
-            import.meta.env.VITE_MAP_API_KEY
+          `https://searchconsole.googleapis.com/v1/urlTestingTools/mobileFriendlyTest:run?key=${import.meta.env.VITE_MAP_API_KEY
           }`,
           {
             method: 'POST', // *GET, POST, PUT, DELETE, etc.
@@ -147,25 +147,30 @@ export default {
     <div class="loading-wrapper" v-if="dataReady">
       <button class="buttonload"><i class="fa fa-spinner fa-spin"></i></button>
     </div>
+    <select v-model="selectedType" @change="findBusiness">
+        <option value="">All Types</option>
+        <option value="restaurant">Restaurant</option>
+        <option value="cafe">Cafe</option>
+        <option value="store">Store</option>
+        <option value="gym">Gym</option>
+        <option value="lawyer">Lawyer</option>
+        <option value="school">School</option>
+        <option value="hotel">Hotel</option>
+        <option value="dentist">Dentist</option>
+        <option value="car_repair">Car Repair</option>
+        <!-- Add more as needed -->
+      </select>
     <div class="business-list-container">
       <ul class="business" v-for="item in listItems">
         <li><span style="font-weight: bold">Nombre: </span>{{ item.name }}</li>
         <li><span style="font-weight: bold">Estatus: </span>{{ item.business_status }}</li>
         <li>
-          <span style="font-weight: bold">Sitio web: </span
-          ><a
-            class="website-link"
-            :class="[item.mobileFriendliness === 'MOBILE_FRIENDLY' ? 'responsive' : '']"
-            href="{{ item.website }}"
-            style="{{ color:  }}"
-            target="blank_"
-            >{{ item.website }}</a
-          >
+          <span style="font-weight: bold">Sitio web: </span><a class="website-link"
+            :class="[item.mobileFriendliness === 'MOBILE_FRIENDLY' ? 'responsive' : '']" href="{{ item.website }}"
+            style="{{ color:  }}" target="blank_">{{ item.website }}</a>
         </li>
         <li>
-          <span style="font-weight: bold">Tipo: </span
-          ><span v-for="item in item.types">, {{ item }}</span
-          >.
+          <span style="font-weight: bold">Tipo: </span><span v-for="item in item.types">, {{ item }}</span>.
         </li>
         <li>
           <p style="font-weight: bold">
@@ -184,12 +189,15 @@ export default {
   width: 100%;
   margin: auto;
 }
+
 .about {
   margin: 0 auto;
 }
+
 .about header {
   text-align: center;
 }
+
 .business-btn {
   padding: 10px 20px;
   margin: 20px 0;
@@ -208,6 +216,7 @@ export default {
   flex-wrap: wrap;
   justify-content: center;
 }
+
 .business {
   box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
   border-radius: 5px;
@@ -218,6 +227,7 @@ export default {
   text-align: left;
   overflow: hidden;
 }
+
 .website-link {
   cursor: pointer;
 }
@@ -232,9 +242,9 @@ export default {
 
 .buttonload {
   background-color: #04aa6d;
-  border: none; 
-  color: white; 
-  padding: 24px; 
+  border: none;
+  color: white;
+  padding: 24px;
   font-size: 28px;
   border-radius: 35px;
   margin-top: 10px;
