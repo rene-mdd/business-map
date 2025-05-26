@@ -147,7 +147,7 @@ export default {
     <div class="loading-wrapper" v-if="dataReady">
       <button class="buttonload"><i class="fa fa-spinner fa-spin"></i></button>
     </div>
-    <select v-model="selectedType" @change="findBusiness">
+    <select v-model="selectedType">
         <option value="">All Types</option>
         <option value="restaurant">Restaurant</option>
         <option value="cafe">Cafe</option>
