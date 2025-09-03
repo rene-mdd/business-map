@@ -79,10 +79,11 @@ export default {
           console.log(this.selectedWebsite)
           totalAmount += 1
           if (status === google.maps.places.PlacesServiceStatus.OK) {
-            if (this.selectedWebsite === "random") {
+            if (this.selectedWebsite === 'random') {
               this.listItems.push(result)
               totalAmount += 1
-            }  if (this.selectedWebsite === "website") {
+            }
+            if (this.selectedWebsite === 'website') {
               if (result.website) {
                 this.listItems.push(result)
                 totalAmount += 1
@@ -94,8 +95,9 @@ export default {
                   })
                 }
               }
-            }  if (this.selectedWebsite === "no-website") {
-                            if (!result.website) {
+            }
+            if (this.selectedWebsite === 'no-website') {
+              if (!result.website) {
                 this.listItems.push(result)
                 totalAmount += 1
                 // Optional: Place marker only for businesses without websites
@@ -139,7 +141,8 @@ export default {
           requestScreenshot: true
         }
         let response = await fetch(
-          `https://searchconsole.googleapis.com/v1/urlTestingTools/mobileFriendlyTest:run?key=${import.meta.env.VITE_MAP_API_KEY
+          `https://searchconsole.googleapis.com/v1/urlTestingTools/mobileFriendlyTest:run?key=${
+            import.meta.env.VITE_MAP_API_KEY
           }`,
           {
             method: 'POST', // *GET, POST, PUT, DELETE, etc.
@@ -201,17 +204,24 @@ export default {
         <li><span style="font-weight: bold">Nombre: </span>{{ item.name }}</li>
         <li><span style="font-weight: bold">Estatus: </span>{{ item.business_status }}</li>
         <li>
-          <span style="font-weight: bold">Sitio web: </span><a class="website-link"
-            :class="[item.mobileFriendliness === 'MOBILE_FRIENDLY' ? 'responsive' : '']" href="{{ item.website }}"
-            style="{{ color:  }}" target="blank_">{{ item.website }}</a>
+          <span style="font-weight: bold">Sitio web: </span
+          ><a
+            class="website-link"
+            :class="[item.mobileFriendliness === 'MOBILE_FRIENDLY' ? 'responsive' : '']"
+            :href="item.website"
+            target="_blank"
+            >{{ item.website }}</a
+          >
         </li>
         <li>
-          <span style="font-weight: bold">Tipo: </span><span v-for="item in item.types">, {{ item }}</span>.
+          <span style="font-weight: bold">Tipo: </span
+          ><span v-for="type in item.types" :key="type">, {{ type }}</span
+          >.
         </li>
         <li>
           <p style="font-weight: bold">
             Telefono:
-            <a href="tel:{{ item.formatted_phone_number }}">{{ item.formatted_phone_number }}</a>
+            <a :href="`${item.formatted_phone_number}`">{{ item.formatted_phone_number }}</a>
           </p>
         </li>
       </ul>
