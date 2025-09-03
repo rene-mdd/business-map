@@ -10,6 +10,7 @@ export default defineConfig({
     vue(),
     vueJsx(),
   ],
+  base: '/business-map/',
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url))
