@@ -69,16 +69,10 @@ export default {
       this.service = new google.maps.places.PlacesService(this.map)
       const callback = (results, status) => {
         const callbackPlace = (result, status) => {
-          if (status === google.maps.places.PlacesServiceStatus.OK && result) {
-            // Only push if not already in listItems
-            const exists = this.listItems.some(item => item.place_id === result.place_id)
-            if (!exists) {
-              this.listItems.push(result)
-
-              if (result.website) {
-                this.fetchAsync(result.website)
-              }
-            }
+          // console.log(result)
+          this.listItems.push(result)
+          if (result.website) {
+            this.fetchAsync(result.website)
           }
         }
         for (let i = 0; i < 2; i++) {
@@ -138,11 +132,13 @@ export default {
         <li><span style="font-weight: bold">Nombre: </span>{{ item.name }}</li>
         <li><span style="font-weight: bold">Estatus: </span>{{ item.business_status }}</li>
         <li>
-          <span style="font-weight: bold">Sitio web: </span><a class="website-link" rel="noopener noreferrer" href="{{ item.website }}"
-            target="_blank">{{ item.website }}</a>
+          <span style="font-weight: bold">Sitio web: </span
+          ><a class="website-link" href="{{ item.website }}" target="blank_">{{ item.website }}</a>
         </li>
         <li>
-          <span style="font-weight: bold">Tipo: </span><span v-for="item in item.types">, {{ item }}</span>.
+          <span style="font-weight: bold">Tipo: </span
+          ><span v-for="item in item.types">, {{ item }}</span
+          >.
         </li>
         <li>
           <p style="font-weight: bold">
@@ -161,15 +157,12 @@ export default {
   width: 100%;
   margin: auto;
 }
-
 .about {
   margin: 0 auto;
 }
-
 .about header {
   text-align: center;
 }
-
 .business-btn {
   padding: 10px 20px;
   margin: 20px 0;
@@ -188,7 +181,6 @@ export default {
   flex-wrap: wrap;
   justify-content: center;
 }
-
 .business {
   box-shadow: rgba(0, 0, 0, 0.35) 0px 5px 15px;
   border-radius: 5px;
@@ -199,7 +191,6 @@ export default {
   text-align: left;
   overflow: hidden;
 }
-
 .website-link {
   cursor: pointer;
 }
