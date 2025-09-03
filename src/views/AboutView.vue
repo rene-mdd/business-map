@@ -168,7 +168,7 @@ export default {
         <li>
           <span style="font-weight: bold">Sitio web: </span><a class="website-link"
             :class="[item.mobileFriendliness === 'MOBILE_FRIENDLY' ? 'responsive' : '']" href="{{ item.website }}"
-            style="{{ color:  }}" target="blank_">{{ item.website }}</a>
+            target="_blank" rel="noopener noreferrer">{{ item.website }}</a>
         </li>
         <li>
           <span style="font-weight: bold">Tipo: </span><span v-for="item in item.types">, {{ item }}</span>.
