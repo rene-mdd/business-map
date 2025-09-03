@@ -16,7 +16,8 @@ export default {
       lng: 2.155339378508503,
       mobileFriendly: 'responsive',
       notMobileFriendly: 'not-responsive',
-      selectedType: 'hotel',
+      selectedType: 'establishment',
+      selectedWebsite: 'random'
     }
   },
   async mounted() {
@@ -62,43 +63,73 @@ export default {
       if (!place.geometry || !place.geometry.location) return
     },
     findBusiness() {
-  let request = {
-    location: { lat: this.lat, lng: this.lng },
-    radius: '1000',
-    type: this.selectedType || undefined
-  }
-  let place_request = {
-    placeId: '',
-    fields: ['business_status', 'name', 'type', 'website', 'formatted_phone_number', 'geometry']
-  }
-  this.service = new google.maps.places.PlacesService(this.map)
-  const callback = (results, status) => {
-    let totalAmount = 0
-    const callbackPlace = (result, status) => {
-      totalAmount += 1
-      if (status === google.maps.places.PlacesServiceStatus.OK) {
-        if (!result.website) {
-          this.listItems.push(result)
-          // Optional: Place marker only for businesses without websites
-          if (result.geometry && result.geometry.location) {
-            new google.maps.Marker({
-              map: this.map,
-              position: result.geometry.location
-            })
+      let request = {
+        location: { lat: this.lat, lng: this.lng },
+        radius: '500',
+        type: this.selectedType || undefined
+      }
+      let place_request = {
+        placeId: '',
+        fields: ['business_status', 'name', 'type', 'website', 'formatted_phone_number', 'geometry']
+      }
+      this.service = new google.maps.places.PlacesService(this.map)
+      const callback = (results, status) => {
+        let totalAmount = 0
+        const callbackPlace = (result, status) => {
+          console.log(this.selectedWebsite)
+          totalAmount += 1
+          if (status === google.maps.places.PlacesServiceStatus.OK) {
+            if (this.selectedWebsite === "random") {
+              this.listItems.push(result)
+              totalAmount += 1
+            }  if (this.selectedWebsite === "website") {
+              if (result.website) {
+                this.listItems.push(result)
+                totalAmount += 1
+                // Optional: Place marker only for businesses without websites
+                if (result.geometry && result.geometry.location) {
+                  new google.maps.Marker({
+                    map: this.map,
+                    position: result.geometry.location
+                  })
+                }
+              }
+            }  if (this.selectedWebsite === "no-website") {
+                            if (!result.website) {
+                this.listItems.push(result)
+                totalAmount += 1
+                // Optional: Place marker only for businesses without websites
+                if (result.geometry && result.geometry.location) {
+                  new google.maps.Marker({
+                    map: this.map,
+                    position: result.geometry.location
+                  })
+                }
+              }
+            }
+            // if (!result.website) {
+            //   this.listItems.push(result)
+            //   totalAmount += 1
+            //   // Optional: Place marker only for businesses without websites
+            //   if (result.geometry && result.geometry.location) {
+            //     new google.maps.Marker({
+            //       map: this.map,
+            //       position: result.geometry.location
+            //     })
+            //   }
+            // }
+          }
+          if (totalAmount === results.length) {
+            this.fetchAsync()
           }
         }
+        for (let i = 0; i < results.length; i++) {
+          place_request.placeId = results[i].place_id
+          this.service.getDetails(place_request, callbackPlace)
+        }
       }
-      if (totalAmount === results.length) {
-        this.fetchAsync()
-      }
-    }
-    for (let i = 0; i < results.length; i++) {
-      place_request.placeId = results[i].place_id
-      this.service.getDetails(place_request, callbackPlace)
-    }
-  }
-  this.service.nearbySearch(request, callback)
-},
+      this.service.nearbySearch(request, callback)
+    },
     async fetchAsync() {
       this.websiteAsyncStatus = this.listItems.map(async (item) => {
         const text = item.website ? item.website : 'https//www. .net'
@@ -149,18 +180,22 @@ export default {
       <button class="buttonload"><i class="fa fa-spinner fa-spin"></i></button>
     </div>
     <select v-model="selectedType">
-        <option value="">All Types</option>
-        <option value="restaurant">Restaurant</option>
-        <option value="cafe">Cafe</option>
-        <option value="store">Store</option>
-        <option value="gym">Gym</option>
-        <option value="lawyer">Lawyer</option>
-        <option value="school">School</option>
-        <option value="hotel">Hotel</option>
-        <option value="dentist">Dentist</option>
-        <option value="car_repair">Car Repair</option>
-        <!-- Add more as needed -->
-      </select>
+      <option value="establishment">All Types</option>
+      <option value="restaurant">Restaurant</option>
+      <option value="cafe">Cafe</option>
+      <option value="store">Store</option>
+      <option value="gym">Gym</option>
+      <option value="lawyer">Lawyer</option>
+      <option value="school">School</option>
+      <option value="hotel">Hotel</option>
+      <option value="dentist">Dentist</option>
+      <option value="car_repair">Car Repair</option>
+    </select>
+    <select v-model="selectedWebsite">
+      <option value="website">With website</option>
+      <option value="no-website">With no website</option>
+      <option value="random">Random</option>
+    </select>
     <div class="business-list-container">
       <ul class="business" v-for="item in listItems">
         <li><span style="font-weight: bold">Nombre: </span>{{ item.name }}</li>
