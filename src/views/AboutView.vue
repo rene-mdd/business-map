@@ -19,7 +19,7 @@ export default {
       mobileFriendly: 'responsive',
       notMobileFriendly: 'not-responsive',
       selectedType: '',
-      searchRadius: '500', // Increased default radius
+      searchRadius: '250', // Increased default radius
     }
   },
 
@@ -309,6 +309,7 @@ export default {
       </select>
 
       <select v-model="searchRadius">
+        <option value="250">250 m</option>
         <option value="500">500 m</option>
         <option value="1000">1 km</option>
         <option value="2000">2 km</option>
