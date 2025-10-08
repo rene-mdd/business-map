@@ -19,7 +19,8 @@ export default {
       mobileFriendly: 'responsive',
       notMobileFriendly: 'not-responsive',
       selectedType: '',
-      searchRadius: '250', // Increased default radius
+      searchRadius: '200', // Increased default radius
+      noWebsite: 'website'
     }
   },
 
@@ -143,68 +144,81 @@ export default {
     },
 
     processAllResults(results, place_request) {
-      let processedCount = 0
+      let processedCount = 0;
 
       const callbackPlace = (result, status) => {
         if (status === google.maps.places.PlacesServiceStatus.OK) {
-          this.listItems.push(result)
+          this.listItems.push(result);
 
           // Create marker for this place
           if (result.geometry && result.geometry.location) {
             this.createMarker({
               geometry: result.geometry,
               name: result.name
-            })
+            });
           }
         } else {
-          console.warn('Failed to get details for place:', status)
+          console.warn('Failed to get details for place:', status);
         }
 
-        processedCount += 1
+        processedCount += 1;
 
         if (processedCount === results.length) {
-          console.log(`Processed ${this.listItems.length} businesses with details`)
-          this.fetchAsync()
+          console.log(`Processed ${this.listItems.length} businesses with details`);
+          this.fetchAsync();
         }
-      }
+      };
 
       // Debug: Log the first result to see its structure
       if (results.length > 0) {
-        console.log('Sample result structure:', results[0])
-        console.log('Available keys:', Object.keys(results[0]))
+        console.log('Sample result structure:', results[0]);
+        console.log('Available keys:', Object.keys(results[0]));
       }
 
-      // Get details for each place
+      // Optimization: reduce API usage based on filter
+      if (this.noWebsite === 'no-website') {
+        // ✅ Skip getDetails to save quota
+        console.log('Skipping getDetails() because filter = no-website');
+        this.listItems = results.map(r => ({
+          name: r.name,
+          business_status: r.business_status,
+          types: r.types,
+          geometry: r.geometry,
+          website: null, // ensure consistency
+          formatted_phone_number: null
+        }));
+
+        this.fetchAsync();
+        return;
+      }
+
+      // If looking for businesses with websites → call getDetails normally
       for (let i = 0; i < results.length; i++) {
-        const currentPlace = results[i]
+        const currentPlace = results[i];
 
-        // Try different possible place ID properties
-        const placeId = currentPlace.place_id || currentPlace.placeId || currentPlace.id
+        const placeId = currentPlace.place_id || currentPlace.placeId || currentPlace.id;
 
-        // Check if place_id exists and is valid
         if (!placeId || typeof placeId !== 'string') {
-          console.warn('Invalid or missing place_id for result:', currentPlace)
-          console.warn('Place ID value:', placeId, 'Type:', typeof placeId)
-          processedCount += 1
+          console.warn('Invalid or missing place_id for result:', currentPlace);
+          processedCount += 1;
           if (processedCount === results.length) {
-            console.log(`Processed ${this.listItems.length} businesses with details`)
-            this.fetchAsync()
+            console.log(`Processed ${this.listItems.length} businesses with details`);
+            this.fetchAsync();
           }
-          continue
+          continue;
         }
 
-        // Create a new request object for each place to avoid reference issues
         const individualPlaceRequest = {
           placeId: placeId,
           fields: ['business_status', 'name', 'types', 'website', 'formatted_phone_number', 'geometry']
-        }
+        };
 
-        console.log(`Making request for place ${i + 1}/${results.length} with ID: ${placeId}`)
+        console.log(`Making request for place ${i + 1}/${results.length} with ID: ${placeId}`);
 
         // Add small delay between requests to avoid rate limiting
         setTimeout(() => {
-          this.service.getDetails(individualPlaceRequest, callbackPlace)
-        }, i * 100) // 100ms delay between requests
+          this.service.getDetails(individualPlaceRequest, callbackPlace);
+        }, i * 100);
       }
     },
 
@@ -224,7 +238,7 @@ export default {
 
         const bodyObject = {
           url: replacedText,
-          requestScreenshot: false // Set to false for faster requests
+          requestScreenshot: false
         }
 
         try {
@@ -262,7 +276,14 @@ export default {
             Object.assign(this.listItems[index], siteStatus)
           })
 
-          console.log('Website analysis completed')
+          // ✅ Apply website filter
+          if (this.noWebsite === 'website') {
+            this.listItems = this.listItems.filter(item => !!item.website)
+          } else if (this.noWebsite === 'no-website') {
+            this.listItems = this.listItems.filter(item => !item.website)
+          }
+
+          console.log('Website analysis completed and filtered')
         }
       } catch (error) {
         console.error('Error in fetchAsync:', error)
@@ -309,12 +330,17 @@ export default {
       </select>
 
       <select v-model="searchRadius">
-        <option value="250">250 m</option>
+        <option value="200">200 m</option>
         <option value="500">500 m</option>
         <option value="1000">1 km</option>
         <option value="2000">2 km</option>
         <option value="10000">10 km</option>
         <option value="20000">20 km</option>
+      </select>
+
+      <select v-model="noWebsite">
+        <option value="website">With website</option>
+        <option value="no-website">With no website</option>
       </select>
 
       <button @click="searchWithParams" class="search-btn" :disabled="dataReady">
