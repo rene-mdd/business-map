@@ -150,7 +150,6 @@ export default {
         if (status === google.maps.places.PlacesServiceStatus.OK) {
           this.listItems.push(result);
 
-          // Create marker for this place
           if (result.geometry && result.geometry.location) {
             this.createMarker({
               geometry: result.geometry,
@@ -169,53 +168,44 @@ export default {
         }
       };
 
-      // Debug: Log the first result to see its structure
-      if (results.length > 0) {
-        console.log('Sample result structure:', results[0]);
-        console.log('Available keys:', Object.keys(results[0]));
-      }
-
-      // Optimization: reduce API usage based on filter
+      // Filter optimization
       if (this.noWebsite === 'no-website') {
-        // ✅ Skip getDetails to save quota
-        console.log('Skipping getDetails() because filter = no-website');
+        console.log('Skipping getDetails() to save quota for no-website filter');
+
+        // Keep the website field if it exists, but do not call getDetails()
         this.listItems = results.map(r => ({
           name: r.name,
           business_status: r.business_status,
           types: r.types,
           geometry: r.geometry,
-          website: null, // ensure consistency
-          formatted_phone_number: null
+          website: r.website || null, // keep website if present
+          formatted_phone_number: null // phone unknown without getDetails()
         }));
 
-        this.fetchAsync();
+        // Filter UI to show only businesses without a website
+        this.listItems = this.listItems.filter(item => !item.website);
+
+        this.dataReady = false;
         return;
       }
 
-      // If looking for businesses with websites → call getDetails normally
+      // Normal getDetails flow for "With website" filter
       for (let i = 0; i < results.length; i++) {
         const currentPlace = results[i];
-
         const placeId = currentPlace.place_id || currentPlace.placeId || currentPlace.id;
 
         if (!placeId || typeof placeId !== 'string') {
           console.warn('Invalid or missing place_id for result:', currentPlace);
           processedCount += 1;
-          if (processedCount === results.length) {
-            console.log(`Processed ${this.listItems.length} businesses with details`);
-            this.fetchAsync();
-          }
+          if (processedCount === results.length) this.fetchAsync();
           continue;
         }
 
         const individualPlaceRequest = {
-          placeId: placeId,
+          placeId,
           fields: ['business_status', 'name', 'types', 'website', 'formatted_phone_number', 'geometry']
         };
 
-        console.log(`Making request for place ${i + 1}/${results.length} with ID: ${placeId}`);
-
-        // Add small delay between requests to avoid rate limiting
         setTimeout(() => {
           this.service.getDetails(individualPlaceRequest, callbackPlace);
         }, i * 100);
