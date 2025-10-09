@@ -143,13 +143,18 @@ export default {
       fetchAllPages(request)
     },
 
-    processAllResults(results, place_request) {
+    processAllResults(results) {
       let processedCount = 0;
+      this.listItems = []; // reset list
 
       const callbackPlace = (result, status) => {
+        processedCount += 1;
+
         if (status === google.maps.places.PlacesServiceStatus.OK) {
+          // Push all results first
           this.listItems.push(result);
 
+          // Create marker if location exists
           if (result.geometry && result.geometry.location) {
             this.createMarker({
               geometry: result.geometry,
@@ -160,45 +165,26 @@ export default {
           console.warn('Failed to get details for place:', status);
         }
 
-        processedCount += 1;
-
+        // When all results processed
         if (processedCount === results.length) {
-          console.log(`Processed ${this.listItems.length} businesses with details`);
-          this.fetchAsync();
+          // Apply website filter
+          if (this.noWebsite === 'website') {
+            this.listItems = this.listItems.filter(item => !!item.website);
+          } else if (this.noWebsite === 'no-website') {
+            this.listItems = this.listItems.filter(item => !item.website);
+          }
+
+          console.log(`Processed ${this.listItems.length} businesses with correct website filtering`);
+          this.fetchAsync(); // mobile friendliness test
         }
       };
 
-      // Filter optimization
-      if (this.noWebsite === 'no-website') {
-        console.log('Skipping getDetails() to save quota for no-website filter');
-
-        // Keep the website field if it exists, but do not call getDetails()
-        this.listItems = results.map(r => ({
-          name: r.name,
-          business_status: r.business_status,
-          types: r.types,
-          geometry: r.geometry,
-          website: r.website || null, // keep website if present
-          formatted_phone_number: null // phone unknown without getDetails()
-        }));
-
-        // Filter UI to show only businesses without a website
-        this.listItems = this.listItems.filter(item => !item.website);
-
-        this.dataReady = false;
-        return;
-      }
-
-      // Normal getDetails flow for "With website" filter
-      for (let i = 0; i < results.length; i++) {
-        const currentPlace = results[i];
-        const placeId = currentPlace.place_id || currentPlace.placeId || currentPlace.id;
-
-        if (!placeId || typeof placeId !== 'string') {
-          console.warn('Invalid or missing place_id for result:', currentPlace);
-          processedCount += 1;
-          if (processedCount === results.length) this.fetchAsync();
-          continue;
+      // Call getDetails for all results
+      results.forEach((place, index) => {
+        const placeId = place.place_id || place.placeId || place.id;
+        if (!placeId) {
+          processedCount += 1; // skip invalid IDs
+          return;
         }
 
         const individualPlaceRequest = {
@@ -206,10 +192,11 @@ export default {
           fields: ['business_status', 'name', 'types', 'website', 'formatted_phone_number', 'geometry']
         };
 
+        // Add small delay between requests to avoid rate limits
         setTimeout(() => {
           this.service.getDetails(individualPlaceRequest, callbackPlace);
-        }, i * 100);
-      }
+        }, index * 100);
+      });
     },
 
     async fetchAsync() {
